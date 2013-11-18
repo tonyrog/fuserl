@@ -1,0 +1,8 @@
+{application,fuserl,
+ [{description,"Erlang FUSE binding Erlang code."},
+  {vsn,"2.0.5"},
+  {modules,[fuserl,fuserlcodec,fuserlportable,fuserlsrv]},
+  {registered,[]},
+  {applications,[kernel,stdlib]},
+  {env,[{fuserldrvprefix,auto_detect}]}
+]}.
