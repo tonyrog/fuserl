@@ -1,8 +1,7 @@
 #ifndef __FUSERL_TYPES_H_
 #define __FUSERL_TYPES_H_ 1
 
-#define FUSE_USE_VERSION 26
-#include <fuse_lowlevel.h>
+#include <fuse/fuse_lowlevel.h>
 
 enum _FusErlOpLL 
 {
