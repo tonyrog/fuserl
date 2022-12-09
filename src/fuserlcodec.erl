@@ -21,7 +21,7 @@
            encode_statvfs/1,
            encode_string/1 ]).
 
--include ("fuserl.hrl").
+-include ("../include/fuserl.hrl").
 
 %-=====================================================================-
 %-                                Public                               -

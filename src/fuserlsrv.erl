@@ -17,7 +17,7 @@
            terminate/2,
            code_change/3]).
 
--include ("fuserl.hrl").
+-include ("../include/fuserl.hrl").
 %% -include ("fuserlprefix.hrl").
 
 -record (fuserlsrvstate, { module, port, state }).

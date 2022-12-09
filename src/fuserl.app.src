@@ -1,7 +1,8 @@
+%% -*- erlang -*-
 {application,fuserl,
  [{description,"Erlang FUSE binding Erlang code."},
   {vsn, git},
-  {modules,[fuserl,fuserlcodec,fuserlportable,fuserlsrv]},
+  {modules, ["@@MODULES@@"]}, 
   {registered,[]},
   {applications,[kernel,stdlib]},
   {env,[{fuserldrvprefix,auto_detect}]}
