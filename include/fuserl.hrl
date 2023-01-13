@@ -224,6 +224,39 @@
 %-                 fuse_reply types (for lowlevel API)                 -
 %-=====================================================================-
 
+-define (FUSERL_LL_LOOKUP, 0).
+-define (FUSERL_LL_FORGET, 1).
+-define (FUSERL_LL_GETATTR, 2).
+-define (FUSERL_LL_SETATTR, 3).
+-define (FUSERL_LL_READLINK, 4).
+-define (FUSERL_LL_MKNOD, 5).
+-define (FUSERL_LL_MKDIR, 6).
+-define (FUSERL_LL_UNLINK, 7).
+-define (FUSERL_LL_RMDIR, 8).
+-define (FUSERL_LL_SYMLINK, 9).
+-define (FUSERL_LL_RENAME, 10).
+-define (FUSERL_LL_LINK, 11).
+-define (FUSERL_LL_OPEN, 12).
+-define (FUSERL_LL_READ, 13).
+-define (FUSERL_LL_WRITE, 14).
+-define (FUSERL_LL_FLUSH, 15).
+-define (FUSERL_LL_RELEASE, 16).
+-define (FUSERL_LL_FSYNC, 17).
+-define (FUSERL_LL_OPENDIR, 18).
+-define (FUSERL_LL_READDIR, 19).
+-define (FUSERL_LL_RELEASEDIR, 20).
+-define (FUSERL_LL_FSYNCDIR, 21).
+-define (FUSERL_LL_STATFS, 22).
+-define (FUSERL_LL_SETXATTR, 23).
+-define (FUSERL_LL_GETXATTR, 24).
+-define (FUSERL_LL_LISTXATTR, 25).
+-define (FUSERL_LL_REMOVEXATTR, 26).
+-define (FUSERL_LL_ACCESS, 27).
+-define (FUSERL_LL_CREATE, 28).
+-define (FUSERL_LL_GETLK, 29).
+-define (FUSERL_LL_SETLK, 30).
+-define (FUSERL_LL_BMAP, 31).
+
 % wrt fuse_reply_err, some methods respond with #fuse_reply_err{err = ok}
 % to indicate success, e.g., rmdir.
 -record (fuse_reply_err, { err }).
@@ -239,5 +272,16 @@
 -record (fuse_reply_xattr, { count }).
 -record (fuse_reply_lock, { flock }).
 -record (fuse_reply_direntrylist, { direntrylist }).
+
+
+-define(uint8(X),  (X):8).
+-define(int64(X),  (X):64/native-signed).
+-define(uint64(X), (X):64/native-unsigned).
+-define(bin(X),    (X)/binary).
+-define(bin(X,L),  (X):(L)/binary).
+-define(true,      (1):8).
+-define(false,     (0):8).
+
+-define(enc_bool(X), (if (X)->1; true -> 0 end)).
 
 -endif.

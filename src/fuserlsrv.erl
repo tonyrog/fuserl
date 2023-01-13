@@ -25,39 +25,6 @@
 -define (EMULATOR_REQUEST_LL, 0).
 -define (EMULATOR_REPLY_START_LL, 1).
 
--define (FUSERL_LL_LOOKUP, 0).
--define (FUSERL_LL_FORGET, 1).
--define (FUSERL_LL_GETATTR, 2).
--define (FUSERL_LL_SETATTR, 3).
--define (FUSERL_LL_READLINK, 4).
--define (FUSERL_LL_MKNOD, 5).
--define (FUSERL_LL_MKDIR, 6).
--define (FUSERL_LL_UNLINK, 7).
--define (FUSERL_LL_RMDIR, 8).
--define (FUSERL_LL_SYMLINK, 9).
--define (FUSERL_LL_RENAME, 10).
--define (FUSERL_LL_LINK, 11).
--define (FUSERL_LL_OPEN, 12).
--define (FUSERL_LL_READ, 13).
--define (FUSERL_LL_WRITE, 14).
--define (FUSERL_LL_FLUSH, 15).
--define (FUSERL_LL_RELEASE, 16).
--define (FUSERL_LL_FSYNC, 17).
--define (FUSERL_LL_OPENDIR, 18).
--define (FUSERL_LL_READDIR, 19).
--define (FUSERL_LL_RELEASEDIR, 20).
--define (FUSERL_LL_FSYNCDIR, 21).
--define (FUSERL_LL_STATFS, 22).
--define (FUSERL_LL_SETXATTR, 23).
--define (FUSERL_LL_GETXATTR, 24).
--define (FUSERL_LL_LISTXATTR, 25).
--define (FUSERL_LL_REMOVEXATTR, 26).
--define (FUSERL_LL_ACCESS, 27).
--define (FUSERL_LL_CREATE, 28).
--define (FUSERL_LL_GETLK, 29).
--define (FUSERL_LL_SETLK, 30).
--define (FUSERL_LL_BMAP, 31).
-
 -define (EMULATOR_REQUEST_START_LL, 0).
 -define (EMULATOR_REPLY_REPLY_LL, 1).
 
@@ -204,10 +171,8 @@ reply ({ Port, Req, write }, R=#fuse_reply_err{}) ->
 %% @end
 
 start (Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module),
-       ((LinkedIn =:= true) or (LinkedIn =:= false)),
-       is_list (MountOpts),
-       is_list (MountPoint) ->
+  when is_atom (Module), is_boolean(LinkedIn),
+       is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start (?MODULE, 
                     [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
                     Options).
@@ -219,10 +184,8 @@ start (Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module),
-       ((LinkedIn =:= true) or (LinkedIn =:= false)),
-       is_list (MountOpts),
-       is_list (MountPoint) ->
+  when is_atom (Module), is_boolean(LinkedIn), 
+       is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start (ServerName,
                     ?MODULE, 
                     [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
@@ -235,10 +198,8 @@ start (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start_link (Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module),
-       ((LinkedIn =:= true) or (LinkedIn =:= false)),
-       is_list (MountOpts),
-       is_list (MountPoint) ->
+  when is_atom (Module), is_boolean(LinkedIn),
+       is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start_link (?MODULE, 
                          [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
                          Options).
@@ -250,10 +211,8 @@ start_link (Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start_link (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module),
-       ((LinkedIn =:= true) or (LinkedIn =:= false)),
-       is_list (MountOpts),
-       is_list (MountPoint) ->
+  when is_atom (Module), is_boolean(LinkedIn),
+       is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start_link (ServerName,
                          ?MODULE, 
                          [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
@@ -276,7 +235,7 @@ init ([ Module, LinkedIn, MountOpts, MountPoint | Args ]) ->
 
   receive
     { Port, { data, <<?EMULATOR_REPLY_START_LL:8, 
-                      Len:64/native-unsigned, 
+                      ?uint64(Len), 
                       String:Len/binary>> } } ->
       case String of
         <<"ok">> -> 
@@ -364,195 +323,133 @@ code_change (OldVsn,
 %-                               Private                               -
 %-=====================================================================-
 
-decode_opcode (?FUSERL_LL_LOOKUP) -> lookup;
-decode_opcode (?FUSERL_LL_FORGET) -> forget;
-decode_opcode (?FUSERL_LL_GETATTR) -> getattr;
-decode_opcode (?FUSERL_LL_SETATTR) -> setattr;
-decode_opcode (?FUSERL_LL_READLINK) -> readlink;
-decode_opcode (?FUSERL_LL_MKNOD) -> mknod;
-decode_opcode (?FUSERL_LL_MKDIR) -> mkdir;
-decode_opcode (?FUSERL_LL_UNLINK) -> unlink;
-decode_opcode (?FUSERL_LL_RMDIR) -> rmdir;
-decode_opcode (?FUSERL_LL_SYMLINK) -> symlink;
-decode_opcode (?FUSERL_LL_RENAME) -> rename;
-decode_opcode (?FUSERL_LL_LINK) -> link;
-decode_opcode (?FUSERL_LL_OPEN) -> open;
-decode_opcode (?FUSERL_LL_READ) -> read;
-decode_opcode (?FUSERL_LL_WRITE) -> write;
-decode_opcode (?FUSERL_LL_FLUSH) -> flush;
-decode_opcode (?FUSERL_LL_RELEASE) -> release;
-decode_opcode (?FUSERL_LL_FSYNC) -> fsync;
-decode_opcode (?FUSERL_LL_OPENDIR) -> opendir;
-decode_opcode (?FUSERL_LL_READDIR) -> readdir;
-decode_opcode (?FUSERL_LL_RELEASEDIR) -> releasedir;
-decode_opcode (?FUSERL_LL_FSYNCDIR) -> fsyncdir;
-decode_opcode (?FUSERL_LL_STATFS) -> statfs;
-decode_opcode (?FUSERL_LL_SETXATTR) -> setxattr;
-decode_opcode (?FUSERL_LL_GETXATTR) -> getxattr;
-decode_opcode (?FUSERL_LL_LISTXATTR) -> listxattr;
-decode_opcode (?FUSERL_LL_REMOVEXATTR) -> removexattr;
-decode_opcode (?FUSERL_LL_ACCESS) -> access;
-decode_opcode (?FUSERL_LL_CREATE) -> create;
-decode_opcode (?FUSERL_LL_GETLK) -> getlk;
-decode_opcode (?FUSERL_LL_SETLK) -> setlk;
-decode_opcode (?FUSERL_LL_BMAP) -> bmap.
 
 decode_request (<<?EMULATOR_REQUEST_LL:8,
-                  OpCode:8,
-                  Req:64/native-unsigned,
-                  Uid:64/native-signed,
-                  Gid:64/native-signed,
-                  Pid:64/native-signed,
-                  Rest/binary>>,
+                  ?uint8(OpCode),
+                  ?uint64(Req),
+                  ?int64(Uid),
+                  ?int64(Gid),
+                  ?int64(Pid),
+                  ?bin(Rest)>>,
                 FusErlSrvState) ->
   Ctx = #fuse_ctx{ uid = Uid, gid = Gid, pid = Pid },
-  case decode_opcode (OpCode) of
-    access -> access (Req, Ctx, Rest, FusErlSrvState);
-    create -> create (Req, Ctx, Rest, FusErlSrvState);
-    flush -> flush (Req, Ctx, Rest, FusErlSrvState);
-    forget -> forget (Req, Ctx, Rest, FusErlSrvState);
-    fsync -> fsync (Req, Ctx, Rest, FusErlSrvState);
-    fsyncdir -> fsyncdir (Req, Ctx, Rest, FusErlSrvState);
-    getattr -> getattr (Req, Ctx, Rest, FusErlSrvState);
-    getlk -> getlk (Req, Ctx, Rest, FusErlSrvState);
-    getxattr -> getxattr (Req, Ctx, Rest, FusErlSrvState);
-    link -> link (Req, Ctx, Rest, FusErlSrvState);
-    listxattr -> listxattr (Req, Ctx, Rest, FusErlSrvState);
-    lookup -> lookup (Req, Ctx, Rest, FusErlSrvState);
-    mkdir -> mkdir (Req, Ctx, Rest, FusErlSrvState);
-    mknod -> mknod (Req, Ctx, Rest, FusErlSrvState);
-    open -> open (Req, Ctx, Rest, FusErlSrvState);
-    opendir -> opendir (Req, Ctx, Rest, FusErlSrvState);
-    read -> read (Req, Ctx, Rest, FusErlSrvState);
-    readdir -> readdir (Req, Ctx, Rest, FusErlSrvState);
-    readlink -> readlink (Req, Ctx, Rest, FusErlSrvState);
-    release -> release (Req, Ctx, Rest, FusErlSrvState);
-    releasedir -> releasedir (Req, Ctx, Rest, FusErlSrvState);
-    removexattr -> removexattr (Req, Ctx, Rest, FusErlSrvState);
-    rename -> rename (Req, Ctx, Rest, FusErlSrvState);
-    rmdir -> rmdir (Req, Ctx, Rest, FusErlSrvState);
-    setattr -> setattr (Req, Ctx, Rest, FusErlSrvState);
-    setlk -> setlk (Req, Ctx, Rest, FusErlSrvState);
-    setxattr -> setxattr (Req, Ctx, Rest, FusErlSrvState);
-    statfs -> statfs (Req, Ctx, Rest, FusErlSrvState);
-    symlink -> symlink (Req, Ctx, Rest, FusErlSrvState);
-    unlink -> unlink (Req, Ctx, Rest, FusErlSrvState);
-    write -> write (Req, Ctx, Rest, FusErlSrvState)
+  %% io:format("decode_request ~s\n", [fuserlcodec:decode_opcode(OpCode)]),
+  case OpCode of
+    ?FUSERL_LL_ACCESS -> access (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_CREATE -> create (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_FLUSH -> flush (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_FORGET -> forget (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_FSYNC -> fsync (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_FSYNCDIR -> fsyncdir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_GETATTR -> getattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_GETLK -> getlk (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_GETXATTR -> getxattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_LINK -> link (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_LISTXATTR -> listxattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_LOOKUP -> lookup (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_MKDIR -> mkdir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_MKNOD -> mknod (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_OPEN -> open (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_OPENDIR -> opendir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_READ -> read (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_READDIR -> readdir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_READLINK -> readlink (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_RELEASE -> release (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_RELEASEDIR -> releasedir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_REMOVEXATTR -> removexattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_RENAME -> rename (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_RMDIR -> rmdir (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_SETATTR -> setattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_SETLK -> setlk (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_SETXATTR -> setxattr (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_STATFS -> statfs (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_SYMLINK -> symlink (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_UNLINK -> unlink (Req, Ctx, Rest, FusErlSrvState);
+    ?FUSERL_LL_WRITE -> write (Req, Ctx, Rest, FusErlSrvState)
   end;
 decode_request (X, FusErlSrvState) ->
   % TODO: dispatch to Module handler
   error_logger:error_msg ("fuserlsrv got unexpected data ~p~n", [ X ]),
   { noreply, FusErlSrvState }.
 
-encode_opcode (lookup) -> fuserlcodec:encode_byte (?FUSERL_LL_LOOKUP);
-encode_opcode (forget) -> fuserlcodec:encode_byte (?FUSERL_LL_FORGET);
-encode_opcode (getattr) -> fuserlcodec:encode_byte (?FUSERL_LL_GETATTR);
-encode_opcode (setattr) -> fuserlcodec:encode_byte (?FUSERL_LL_SETATTR);
-encode_opcode (readlink) -> fuserlcodec:encode_byte (?FUSERL_LL_READLINK);
-encode_opcode (mknod) -> fuserlcodec:encode_byte (?FUSERL_LL_MKNOD);
-encode_opcode (mkdir) -> fuserlcodec:encode_byte (?FUSERL_LL_MKDIR);
-encode_opcode (unlink) -> fuserlcodec:encode_byte (?FUSERL_LL_UNLINK);
-encode_opcode (rmdir) -> fuserlcodec:encode_byte (?FUSERL_LL_RMDIR);
-encode_opcode (symlink) -> fuserlcodec:encode_byte (?FUSERL_LL_SYMLINK);
-encode_opcode (rename) -> fuserlcodec:encode_byte (?FUSERL_LL_RENAME);
-encode_opcode (link) -> fuserlcodec:encode_byte (?FUSERL_LL_LINK);
-encode_opcode (open) -> fuserlcodec:encode_byte (?FUSERL_LL_OPEN);
-encode_opcode (read) -> fuserlcodec:encode_byte (?FUSERL_LL_READ);
-encode_opcode (write) -> fuserlcodec:encode_byte (?FUSERL_LL_WRITE);
-encode_opcode (flush) -> fuserlcodec:encode_byte (?FUSERL_LL_FLUSH);
-encode_opcode (release) -> fuserlcodec:encode_byte (?FUSERL_LL_RELEASE);
-encode_opcode (fsync) -> fuserlcodec:encode_byte (?FUSERL_LL_FSYNC);
-encode_opcode (opendir) -> fuserlcodec:encode_byte (?FUSERL_LL_OPENDIR);
-encode_opcode (readdir) -> fuserlcodec:encode_byte (?FUSERL_LL_READDIR);
-encode_opcode (releasedir) -> fuserlcodec:encode_byte (?FUSERL_LL_RELEASEDIR);
-encode_opcode (fsyncdir) -> fuserlcodec:encode_byte (?FUSERL_LL_FSYNCDIR);
-encode_opcode (statfs) -> fuserlcodec:encode_byte (?FUSERL_LL_STATFS);
-encode_opcode (setxattr) -> fuserlcodec:encode_byte (?FUSERL_LL_SETXATTR);
-encode_opcode (getxattr) -> fuserlcodec:encode_byte (?FUSERL_LL_GETXATTR);
-encode_opcode (listxattr) -> fuserlcodec:encode_byte (?FUSERL_LL_LISTXATTR);
-encode_opcode (removexattr) -> fuserlcodec:encode_byte (?FUSERL_LL_REMOVEXATTR);
-encode_opcode (access) -> fuserlcodec:encode_byte (?FUSERL_LL_ACCESS);
-encode_opcode (create) -> fuserlcodec:encode_byte (?FUSERL_LL_CREATE);
-encode_opcode (getlk) -> fuserlcodec:encode_byte (?FUSERL_LL_GETLK);
-encode_opcode (setlk) -> fuserlcodec:encode_byte (?FUSERL_LL_SETLK);
-encode_opcode (bmap) -> fuserlcodec:encode_byte (?FUSERL_LL_BMAP).
-
 encode_reply (Req, #fuse_reply_err{ err = Err }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_ERR),
-    fuserlcodec:encode_native_64_signed 
-      (fuserlportable:canonicalize_errno (Err)) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_ERR),
+       ?int64(fuserlportable:canonicalize_errno (Err)) >>;
 encode_reply (Req, #fuse_reply_none{}) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_NONE) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_NONE) >>;
 encode_reply (Req, #fuse_reply_entry{ fuse_entry_param = FuseEntryParam }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_ENTRY),
-    fuserlcodec:encode_fuse_entry_param (FuseEntryParam) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_ENTRY),
+       ?bin (fuserlcodec:encode_fuse_entry_param (FuseEntryParam)) >>;
 encode_reply (Req, #fuse_reply_create{ fuse_entry_param = FuseEntryParam,
                                        fuse_file_info = Fi }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_CREATE),
-    fuserlcodec:encode_fuse_entry_param (FuseEntryParam),
-    fuserlcodec:encode_fuse_file_info (Fi) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_CREATE),
+       ?bin(fuserlcodec:encode_fuse_entry_param (FuseEntryParam)),
+       ?bin(fuserlcodec:encode_fuse_file_info (Fi)) >>;
 encode_reply (Req, #fuse_reply_attr{ attr = Attr, 
                                      attr_timeout_ms = AttrTimeoutMs }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_ATTR),
-    fuserlcodec:encode_stat (Attr),
-    fuserlcodec:encode_native_64_unsigned (AttrTimeoutMs) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_ATTR),
+       ?bin(fuserlcodec:encode_stat (Attr)),
+       ?uint64 (AttrTimeoutMs) >> ;
 encode_reply (Req, #fuse_reply_readlink{ link = Link }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_READLINK),
-    fuserlcodec:encode_string (Link) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_READLINK),
+       ?bin(fuserlcodec:encode_string (Link)) >>;
 encode_reply (Req, #fuse_reply_open{ fuse_file_info = Fi }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_OPEN),
-    fuserlcodec:encode_fuse_file_info (Fi) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_OPEN),
+       ?bin( fuserlcodec:encode_fuse_file_info (Fi)) >>;
 encode_reply (Req, #fuse_reply_write{ count = Count }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_WRITE),
-    fuserlcodec:encode_native_64_unsigned (Count) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_WRITE),
+       ?uint64 (Count) >>;
 encode_reply (Req, #fuse_reply_buf{ buf = Buf, size = Size }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_BUF),
-    fuserlcodec:encode_binary (Size, Buf) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_BUF),
+       ?uint64 (Size),
+       ?bin ( iolist_to_binary(Buf) ) >>;
 encode_reply (Req, #fuse_reply_statfs{ statvfs = StatVFS }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_STATFS),
-    fuserlcodec:encode_statvfs (StatVFS) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_STATFS),
+       ?bin ( fuserlcodec:encode_statvfs (StatVFS)) >>;
 encode_reply (Req, #fuse_reply_xattr{ count = Count }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_XATTR),
-    fuserlcodec:encode_native_64_unsigned (Count) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_XATTR),
+       ?uint64 (Count) >>;
 encode_reply (Req, #fuse_reply_lock{ flock = Flock }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_LOCK),
-    fuserlcodec:encode_flock (Flock) ];
+    << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+       ?uint64 (Req),
+       ?uint8 (?FUSE_REPLY_LOCK),
+       ?bin (fuserlcodec:encode_flock (Flock) )>>;
 encode_reply (Req, #fuse_reply_direntrylist{ direntrylist = DirEntryList }) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REPLY_REPLY_LL),
-    fuserlcodec:encode_native_64_unsigned (Req),
-    fuserlcodec:encode_byte (?FUSE_REPLY_DIRENTRYLIST),
-    fuserlcodec:encode_direntry_list (DirEntryList) ].
+    [ << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
+	 ?uint64 (Req),
+	 ?uint8 (?FUSE_REPLY_DIRENTRYLIST) >>,
+      fuserlcodec:encode_direntry_list (DirEntryList)
+    ].
 
 encode_start (Impl, MountOpts, MountPoint) ->
-  [ fuserlcodec:encode_byte (?EMULATOR_REQUEST_START_LL),
-    fuserlcodec:encode_string (MountOpts),
-    fuserlcodec:encode_string (MountPoint),
-    fuserlcodec:encode_byte (erlang:length (Impl)),
-    Impl ].
+    Bin = iolist_to_binary(Impl),
+    Len = byte_size(Bin),
+    << ?uint8 (?EMULATOR_REQUEST_START_LL),
+       ?bin (fuserlcodec:encode_string (MountOpts)),
+       ?bin (fuserlcodec:encode_string (MountPoint)),
+       ?uint8 (Len), ?bin (Bin) >>. 
 
 %% fuserldrv_guessprefix () ->
 %%   lists:foldl (fun (Candidate, undefined) ->
@@ -595,15 +492,17 @@ make_port (true) ->
   open_port ({ spawn, fuserl }, [ binary ]).
 
 scan_module (Module) ->
-  { module, Module } = code:ensure_loaded (Module),
+    { module, Module } = code:ensure_loaded (Module),
+    Fs = [ Function ||
+	     { Function, Arity } <- fuserl:behaviour_info (callbacks),
+	     Function =/= code_change,
+	     Function =/= handle_info,
+	     Function =/= init,
+	     Function =/= terminate,
+	     erlang:function_exported (Module, Function, Arity) ],
+    io:format(" scan: mod:~p, fs:~p\n", [Module, Fs]),
+    [ fuserlcodec:encode_opcode ( F ) || F <- Fs ].
 
-  [ encode_opcode (Function) ||
-    { Function, Arity } <- fuserl:behaviour_info (callbacks),
-    Function =/= code_change,
-    Function =/= handle_info,
-    Function =/= init,
-    Function =/= terminate,
-    erlang:function_exported (Module, Function, Arity) ].
 
 send_reply (Port, Req, Reply) ->
   true = port_command (Port, encode_reply (Req, Reply)).
@@ -613,8 +512,8 @@ send_reply (Port, Req, Reply) ->
 %-=====================================================================-
 
 access (Req, Ctx,
-       <<Inode:64/native-unsigned,
-         Mask:64/native-unsigned>>,
+       <<?uint64(Inode),
+         ?uint64(Mask)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -629,10 +528,10 @@ access (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 create (Req, Ctx,
-        <<Parent:64/native-unsigned,
-          Len:64/native-unsigned, 
-          Name:Len/binary,
-          Mode:64/native-unsigned,
+        <<?uint64(Parent),
+          ?uint64(Len), 
+          ?bin(Name,Len),
+          ?uint64(Mode),
           Rest/binary>>,
         FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                           port = Port,
@@ -651,8 +550,8 @@ create (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 flush (Req, Ctx,
-       <<Inode:64/native-unsigned,
-         Rest/binary>>,
+       <<?uint64(Inode),
+         ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -668,8 +567,8 @@ flush (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 forget (Req, Ctx,
-        <<Inode:64/native-unsigned,
-          Nlookup:64/native-unsigned>>,
+        <<?uint64(Inode),
+          ?uint64(Nlookup)>>,
         FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                           port = Port,
                                           state = State }) ->
@@ -684,9 +583,9 @@ forget (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 fsync (Req, Ctx,
-       <<Inode:64/native-unsigned,
-         DataSync:8,
-         Rest/binary>>,
+       <<?uint64(Inode),
+         ?uint8(DataSync),
+         ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -702,9 +601,9 @@ fsync (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 fsyncdir (Req, Ctx,
-          <<Inode:64/native-unsigned,
-            DataSync:8,
-            Rest/binary>>,
+          <<?uint64(Inode),
+            ?uint8(DataSync),
+            ?bin(Rest)>>,
           FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                             port = Port,
                                             state = State }) ->
@@ -720,7 +619,7 @@ fsyncdir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 getattr (Req, Ctx,
-         <<Inode:64/native-unsigned>>,
+         <<?uint64(Inode)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -737,7 +636,7 @@ getattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 getlk (Req, Ctx,
-       <<Inode:64/native-unsigned, Rest/binary>>,
+       <<?uint64(Inode), ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -756,10 +655,10 @@ getlk (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 getxattr (Req, Ctx,
-          <<Inode:64/native-unsigned,
-            Len:64/native-unsigned, 
-            Name:Len/binary,
-            Size:64/native-unsigned>>,
+          <<?uint64(Inode),
+            ?uint64(Len), 
+            ?bin(Name,Len),
+            ?uint64(Size)>>,
           FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                             port = Port,
                                             state = State }) ->
@@ -778,10 +677,10 @@ getxattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 link (Req, Ctx, 
-      <<Ino:64/native-unsigned,
-        NewParent:64/native-unsigned,
-        NewLen:64/native-unsigned,
-        NewName:NewLen/binary>>,
+      <<?uint64(Ino),
+        ?uint64(NewParent),
+        ?uint64(NewLen),
+        ?bin(NewName,NewLen)>>,
       FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                         port = Port,
                                         state = State }) ->
@@ -798,8 +697,8 @@ link (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 listxattr (Req, Ctx, 
-           <<Ino:64/native-unsigned,
-             Size:64/native-unsigned>>,
+           <<?uint64(Ino),
+             ?uint64(Size)>>,
            FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                              port = Port,
                                              state = State }) ->
@@ -818,9 +717,9 @@ listxattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 lookup (Req, Ctx, 
-        <<Parent:64/native-unsigned,
-          Len:64/native-unsigned,
-          Name:Len/binary>>,
+        <<?uint64(Parent),
+          ?uint64(Len),
+          ?bin(Name,Len)>>,
         FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                           port = Port,
                                           state = State }) ->
@@ -837,10 +736,10 @@ lookup (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 mkdir (Req, Ctx, 
-       <<Parent:64/native-unsigned,
-         Len:64/native-unsigned,
-         Name:Len/binary,
-         Mode:64/native-unsigned>>,
+       <<?uint64(Parent),
+         ?uint64(Len),
+         ?bin(Name,Len),
+         ?uint64(Mode)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -857,12 +756,12 @@ mkdir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 mknod (Req, Ctx, 
-       <<Parent:64/native-unsigned,
-         Len:64/native-unsigned,
-         Name:Len/binary,
-         Mode:64/native-unsigned,
-         Major:64/native-unsigned,
-         Minor:64/native-unsigned>>,
+       <<?uint64(Parent),
+         ?uint64(Len),
+         ?bin(Name,Len),
+         ?uint64(Mode),
+         ?uint64(Major),
+         ?uint64(Minor)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -879,8 +778,8 @@ mknod (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 open (Req, Ctx, 
-      <<Inode:64/native-unsigned,
-        Rest/binary>>,
+      <<?uint64(Inode),
+        ?bin(Rest)>>,
       FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                         port = Port,
                                         state = State }) ->
@@ -898,8 +797,8 @@ open (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 opendir (Req, Ctx, 
-         <<Inode:64/native-unsigned,
-           Rest/binary>>,
+         <<?uint64(Inode),
+           ?bin(Rest)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -917,10 +816,10 @@ opendir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 read (Req, Ctx, 
-      <<Inode:64/native-unsigned,
-        Size:64/native-unsigned,
-        Offset:64/native-unsigned,
-        Rest/binary>>,
+      <<?uint64(Inode),
+        ?uint64(Size),
+        ?uint64(Offset),
+        ?bin(Rest)>>,
       FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                         port = Port,
                                         state = State }) ->
@@ -938,10 +837,10 @@ read (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 readdir (Req, Ctx, 
-         <<Inode:64/native-unsigned,
-           Size:64/native-unsigned,
-           Offset:64/native-unsigned,
-           Rest/binary>>,
+         <<?uint64(Inode),
+           ?uint64(Size),
+           ?uint64(Offset),
+           ?bin(Rest)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -959,7 +858,7 @@ readdir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 readlink (Req, Ctx, 
-          <<Inode:64/native-unsigned>>,
+          <<?uint64(Inode)>>,
           FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                             port = Port,
                                             state = State }) ->
@@ -976,8 +875,8 @@ readlink (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 release (Req, Ctx,
-       <<Inode:64/native-unsigned,
-         Rest/binary>>,
+       <<?uint64(Inode),
+         ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -993,8 +892,8 @@ release (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 releasedir (Req, Ctx,
-            <<Inode:64/native-unsigned,
-              Rest/binary>>,
+            <<?uint64(Inode),
+              ?bin(Rest)>>,
             FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                               port = Port,
                                               state = State }) ->
@@ -1010,9 +909,9 @@ releasedir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 removexattr (Req, Ctx, 
-             <<Inode:64/native-unsigned,
-               Len:64/native-unsigned,
-               Name:Len/binary>>,
+             <<?uint64(Inode),
+               ?uint64(Len),
+               ?bin(Name,Len)>>,
              FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                                port = Port,
                                                state = State }) ->
@@ -1027,12 +926,12 @@ removexattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 rename (Req, Ctx, 
-       <<Parent:64/native-unsigned,
-         Len:64/native-unsigned,
-         Name:Len/binary,
-         NewParent:64/native-unsigned,
-         NewLen:64/native-unsigned,
-         NewName:NewLen/binary>>,
+       <<?uint64(Parent),
+         ?uint64(Len),
+         ?bin(Name,Len),
+         ?uint64(NewParent),
+         ?uint64(NewLen),
+         ?bin(NewName,NewLen)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -1047,9 +946,9 @@ rename (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 rmdir (Req, Ctx, 
-       <<Inode:64/native-unsigned,
-         Len:64/native-unsigned,
-         Name:Len/binary>>,
+       <<?uint64(Inode),
+         ?uint64(Len),
+         ?bin(Name,Len)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -1064,9 +963,9 @@ rmdir (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 setattr (Req, Ctx, 
-         <<Inode:64/native-unsigned,
-           ToSet:64/native-signed,
-           Rest/binary>>,
+         <<?uint64(Inode),
+           ?int64(ToSet),
+           ?bin(Rest)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -1085,9 +984,9 @@ setattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 setlk (Req, Ctx, 
-       <<Inode:64/native-unsigned, 
-         Sleep:8,
-         Rest/binary>>,
+       <<?uint64(Inode), 
+         ?uint8(Sleep),
+         ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
@@ -1104,12 +1003,12 @@ setlk (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 setxattr (Req, Ctx, 
-          <<Inode:64/native-unsigned,
-            Len:64/native-unsigned,
-            Name:Len/binary,
-            Size:64/native-unsigned,
-            Value:Size/binary,
-            Flags:64/native-signed>>,
+          <<?uint64(Inode),
+            ?uint64(Len),
+            ?bin(Name,Len),
+            ?uint64(Size),
+            ?bin(Value,Size),
+            ?int64(Flags)>>,
           FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                             port = Port,
                                             state = State }) ->
@@ -1124,7 +1023,7 @@ setxattr (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 statfs (Req, Ctx, 
-         <<Inode:64/native-unsigned>>,
+         <<?uint64(Inode)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -1141,11 +1040,11 @@ statfs (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 symlink (Req, Ctx, 
-         <<LinkLen:64/native-unsigned,
-           Link:LinkLen/binary,
-           Inode:64/native-unsigned,
-           Len:64/native-unsigned,
-           Name:Len/binary>>,
+         <<?uint64(LinkLen),
+           ?bin(Link,LinkLen),
+           ?uint64(Inode),
+           ?uint64(Len),
+           ?bin(Name,Len)>>,
          FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                            port = Port,
                                            state = State }) ->
@@ -1162,9 +1061,9 @@ symlink (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 unlink (Req, Ctx, 
-        <<Inode:64/native-unsigned,
-          Len:64/native-unsigned,
-          Name:Len/binary>>,
+        <<?uint64(Inode),
+          ?uint64(Len),
+          ?bin(Name,Len)>>,
         FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                           port = Port,
                                           state = State }) ->
@@ -1179,11 +1078,11 @@ unlink (Req, Ctx,
   { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }.
 
 write (Req, Ctx, 
-       <<Inode:64/native-unsigned,
-         Size:64/native-unsigned,
-         Data:Size/binary,
-         Offset:64/native-unsigned,
-         Rest/binary>>,
+       <<?uint64(Inode),
+         ?uint64(Size),
+         ?bin(Data,Size),
+         ?uint64(Offset),
+         ?bin(Rest)>>,
        FusErlSrvState = #fuserlsrvstate{ module = Module, 
                                          port = Port,
                                          state = State }) ->
