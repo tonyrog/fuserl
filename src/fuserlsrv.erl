@@ -170,8 +170,10 @@ reply ({ Port, Req, write }, R=#fuse_reply_err{}) ->
 %% Tip: A useful MountOpts is "debug", which enables debug logging.
 %% @end
 
+-define(is_linkedin(Opt), (is_boolean((Opt)) orelse (Opt) =:= nif)).
+
 start (Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module), is_boolean(LinkedIn),
+  when is_atom (Module), ?is_linkedin(LinkedIn),
        is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start (?MODULE, 
                     [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
@@ -184,7 +186,7 @@ start (Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module), is_boolean(LinkedIn), 
+  when is_atom (Module), ?is_linkedin(LinkedIn), 
        is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start (ServerName,
                     ?MODULE, 
@@ -198,7 +200,7 @@ start (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start_link (Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module), is_boolean(LinkedIn),
+  when is_atom (Module), ?is_linkedin(LinkedIn),
        is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start_link (?MODULE, 
                          [ Module, LinkedIn, MountOpts, MountPoint | Args ], 
@@ -211,7 +213,7 @@ start_link (Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @end
 
 start_link (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options) 
-  when is_atom (Module), is_boolean(LinkedIn),
+  when is_atom (Module), ?is_linkedin(LinkedIn),
        is_list (MountOpts), is_list (MountPoint) ->
   gen_server:start_link (ServerName,
                          ?MODULE, 
@@ -225,38 +227,59 @@ start_link (ServerName, Module, LinkedIn, MountOpts, MountPoint, Args, Options)
 %% @hidden
 
 init ([ Module, LinkedIn, MountOpts, MountPoint | Args ]) ->
-  process_flag (trap_exit, true), 
+    process_flag (trap_exit, true), 
+    Fs = scan_module(Module),
+    io:format(" scan: mod:~p, fs:~p\n", [Module, Fs]),
 
-  Port = make_port (LinkedIn),
+    if LinkedIn =:= nif ->
+	    Handle = fuserl_nif:mount(MountPoint, MountOpts, Fs),
+	    case Module:init (Args) of
+		{ ok, State } ->
+		    self() ! process,
+		    { ok, #fuserlsrvstate{ module = Module,
+					   port   = Handle,
+					   state = State } };
+		{ ok, State, Timeout } ->
+		    self() ! process,
+		    { ok, #fuserlsrvstate{ module = Module,
+					   port = Handle,
+					   state = State },
+		      Timeout };
+		R ->
+		    R
+	    end;
+       true  ->
+	    Impl = [ fuserlcodec:encode_opcode(F) || F <- Fs ],
+	    Port = make_port (LinkedIn),
+	    true = port_command(Port, 
+				encode_start(Impl, MountOpts, MountPoint)),
+	    receive
+		{ Port, { data, <<?EMULATOR_REPLY_START_LL:8, 
+				  ?uint64(Len), 
+				  String:Len/binary>> } } ->
+		    case String of
+			<<"ok">> -> 
+			    case Module:init (Args) of
+				{ ok, State } ->
+				    { ok, #fuserlsrvstate{ module = Module,
+							   port = Port,
+							   state = State } };
+				{ ok, State, Timeout } ->
+				    { ok, 
+				      #fuserlsrvstate{ module = Module,
+						       port = Port,
+						       state = State },
+				      Timeout };
+				R ->
+				    R
+			    end;
+			<<"error">> ->
+			    { stop, driver_aborted }
+		    end
+	    end
+    end.
+		
 
-  Impl = scan_module (Module),
-
-  true = port_command (Port, encode_start (Impl, MountOpts, MountPoint)),
-
-  receive
-    { Port, { data, <<?EMULATOR_REPLY_START_LL:8, 
-                      ?uint64(Len), 
-                      String:Len/binary>> } } ->
-      case String of
-        <<"ok">> -> 
-          case Module:init (Args) of
-            { ok, State } ->
-              { ok, #fuserlsrvstate{ module = Module,
-                                     port = Port,
-                                     state = State } };
-            { ok, State, Timeout } ->
-              { ok, 
-                #fuserlsrvstate{ module = Module,
-                                 port = Port,
-                                 state = State },
-                Timeout };
-            R ->
-              R
-          end;
-       <<"error">> ->
-          { stop, driver_aborted }
-      end
-  end.
 
 %% @hidden
 
@@ -268,6 +291,52 @@ handle_cast (_Request, State) -> { noreply, State }.
 
 %% @hidden
 
+handle_info ({fuserl, Req, Ctx, Op, Args}, 
+	     FusErlSrvState = #fuserlsrvstate{ module = Module,
+					       port = H,
+					       state = State }) ->
+    Cont = { H, Req, Op },
+    case apply(Module, Op, [Ctx | Args]++[Cont, State]) of
+	{noreply, NewState} ->
+	    { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } };
+	{ Reply, NewState } ->
+	    Reply1 = translate_reply(Reply),
+	    fuserl_nif:reply(H, Req, Reply1),
+	    { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } }
+    end;
+handle_info( {select,H,undefined,ready_input}, 
+	     FusErlSrvState = #fuserlsrvstate{ port = H }) ->
+    case fuserl_nif:process(H) of
+	select ->
+	    {noreply, FusErlSrvState};
+	ok ->
+	    self() ! process,
+	    {noreply, FusErlSrvState}
+    end;
+handle_info(process, FusErlSrvState = #fuserlsrvstate{ port = H }) ->
+    case fuserl_nif:process(H) of
+	select ->
+	    {noreply, FusErlSrvState};
+	ok ->
+	    self() ! process,
+	    {noreply, FusErlSrvState}
+    end;
+	     
+handle_info ({ Port, { data, Data } }, 
+             FusErlSrvState = #fuserlsrvstate{ port = Port }) ->
+  decode_request (Data, FusErlSrvState);
+handle_info (Msg, FusErlSrvState = #fuserlsrvstate{ module = Module,
+                                                    state = State }) ->
+  case Module:handle_info (Msg, State) of
+    { noreply, NewState } ->
+      { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } };
+    { noreply, NewState, Timeout } ->
+      { noreply,
+        FusErlSrvState#fuserlsrvstate{ state = NewState },
+        Timeout };
+    { stop, Reason, NewState } ->
+      { stop, Reason, FusErlSrvState#fuserlsrvstate{ state = NewState } }
+  end;
 handle_info ({ 'EXIT', Port, Why },
              FusErlSrvState = #fuserlsrvstate{ port = Port }) ->
   %% cheese ... create the fiction that the exit_status message
@@ -285,21 +354,6 @@ handle_info ({ 'EXIT', Port, Why },
       end
   after 1000 ->
     { stop, { port_exit, Why }, FusErlSrvState }
-  end;
-handle_info ({ Port, { data, Data } }, 
-             FusErlSrvState = #fuserlsrvstate{ port = Port }) ->
-  decode_request (Data, FusErlSrvState);
-handle_info (Msg, FusErlSrvState = #fuserlsrvstate{ module = Module,
-                                                    state = State }) ->
-  case Module:handle_info (Msg, State) of
-    { noreply, NewState } ->
-      { noreply, FusErlSrvState#fuserlsrvstate{ state = NewState } };
-    { noreply, NewState, Timeout } ->
-      { noreply,
-        FusErlSrvState#fuserlsrvstate{ state = NewState },
-        Timeout };
-    { stop, Reason, NewState } ->
-      { stop, Reason, FusErlSrvState#fuserlsrvstate{ state = NewState } }
   end.
 
 %% @hidden
@@ -371,6 +425,12 @@ decode_request (X, FusErlSrvState) ->
   % TODO: dispatch to Module handler
   error_logger:error_msg ("fuserlsrv got unexpected data ~p~n", [ X ]),
   { noreply, FusErlSrvState }.
+
+translate_reply (Reply =  #fuse_reply_err{ err = Err }) ->
+    Reply#fuse_reply_err{ err = fuserlportable:canonicalize_errno(Err) };
+translate_reply (Reply) ->
+    Reply.
+
 
 encode_reply (Req, #fuse_reply_err{ err = Err }) ->
     << ?uint8 (?EMULATOR_REPLY_REPLY_LL),
@@ -493,19 +553,16 @@ make_port (true) ->
 
 scan_module (Module) ->
     { module, Module } = code:ensure_loaded (Module),
-    Fs = [ Function ||
+    [ Function ||
 	     { Function, Arity } <- fuserl:behaviour_info (callbacks),
 	     Function =/= code_change,
 	     Function =/= handle_info,
 	     Function =/= init,
 	     Function =/= terminate,
-	     erlang:function_exported (Module, Function, Arity) ],
-    io:format(" scan: mod:~p, fs:~p\n", [Module, Fs]),
-    [ fuserlcodec:encode_opcode ( F ) || F <- Fs ].
-
+	     erlang:function_exported (Module, Function, Arity) ].
 
 send_reply (Port, Req, Reply) ->
-  true = port_command (Port, encode_reply (Req, Reply)).
+    true = port_command (Port, encode_reply (Req, Reply)).
 
 %-=====================================================================-
 %-                             fuse methods                            -
